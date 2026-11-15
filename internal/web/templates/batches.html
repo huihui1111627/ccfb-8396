@@ -1,0 +1,18 @@
+{{template "header" .}}
+<h1>同步批次</h1>
+<div class="card">
+<table>
+<tr><th>批次</th><th>门店</th><th>状态</th><th>开始</th><th>结束</th><th>新增</th><th>更新</th><th>删除</th><th>错误</th></tr>
+{{range .Batches}}
+<tr>
+ <td><a href="/batches/{{.ID}}">#{{.ID}}</a></td>
+ <td>{{index $.Names .SourceID}}</td>
+ <td>{{if eq .Status "done"}}<span class="tag ok">{{statuscn .Status}}</span>{{else if eq .Status "running"}}<span class="tag run">{{statuscn .Status}}</span>{{else}}<span class="tag bad">{{statuscn .Status}}</span>{{end}}</td>
+ <td>{{.StartedAt}}</td><td>{{.FinishedAt}}</td>
+ <td>{{.Inserts}}</td><td>{{.Updates}}</td><td>{{.Deletes}}</td>
+ <td class="mono">{{.Error}}</td>
+</tr>
+{{end}}
+</table>
+</div>
+{{template "footer" .}}

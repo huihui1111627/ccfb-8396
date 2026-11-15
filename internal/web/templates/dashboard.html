@@ -1,0 +1,37 @@
+{{template "header" .}}
+<h1>门店同步看板</h1>
+<div class="card">
+<h2>各门店同步状态</h2>
+<table>
+<tr><th>ID</th><th>门店</th><th>最近成功同步</th><th>同步延迟</th><th>失败率(失败/总批次)</th><th>最近批次</th><th>操作</th></tr>
+{{range .Sources}}
+<tr>
+ <td>{{.ID}}</td><td>{{.Name}}</td>
+ <td>{{if .LastSuccessAt}}{{.LastSuccessAt}}{{else}}<span class="tag warn">从未同步</span>{{end}}</td>
+ <td>{{latency .}}</td>
+ <td>{{failrate .}}</td>
+ <td>{{if .LastBatchID}}<a href="/batches/{{.LastBatchID}}">#{{.LastBatchID}}</a>{{else}}-{{end}}</td>
+ <td>
+   <form class="inline" method="post" action="/sources/{{.ID}}/sync"><button class="btn" type="submit">立即同步</button></form>
+   <a class="btn gray" href="/tables?source_id={{.ID}}">表配置</a>
+ </td>
+</tr>
+{{end}}
+</table>
+</div>
+<div class="card">
+<h2>最近批次</h2>
+<table>
+<tr><th>批次</th><th>门店</th><th>状态</th><th>开始</th><th>结束</th><th>增/改/删</th><th>错误</th></tr>
+{{range .Batches}}
+<tr>
+ <td><a href="/batches/{{.ID}}">#{{.ID}}</a></td><td>{{.SourceID}}</td>
+ <td>{{if eq .Status "done"}}<span class="tag ok">{{statuscn .Status}}</span>{{else if eq .Status "running"}}<span class="tag run">{{statuscn .Status}}</span>{{else}}<span class="tag bad">{{statuscn .Status}}</span>{{end}}</td>
+ <td>{{.StartedAt}}</td><td>{{.FinishedAt}}</td>
+ <td>{{.Inserts}} / {{.Updates}} / {{.Deletes}}</td>
+ <td class="mono">{{.Error}}</td>
+</tr>
+{{end}}
+</table>
+</div>
+{{template "footer" .}}

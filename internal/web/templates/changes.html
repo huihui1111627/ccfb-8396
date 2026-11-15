@@ -1,0 +1,36 @@
+{{template "header" .}}
+<h1>变更明细</h1>
+<div class="card">
+<form method="get" action="/changes">
+ 批次 <input name="batch_id" value="{{.BatchID}}" size="5">
+ 表ID <input name="table_id" value="{{.TableID}}" size="5">
+ 类型 <select name="op">
+  <option value="" {{if eq .Op ""}}selected{{end}}>全部</option>
+  <option value="I" {{if eq .Op "I"}}selected{{end}}>新增</option>
+  <option value="U" {{if eq .Op "U"}}selected{{end}}>更新</option>
+  <option value="D" {{if eq .Op "D"}}selected{{end}}>物理删除</option>
+  <option value="S" {{if eq .Op "S"}}selected{{end}}>软删除</option>
+ </select>
+ <button class="btn" type="submit">查询</button>
+ <span style="margin-left:16px;color:#6b7280">共 {{.Total}} 条</span>
+</form>
+</div>
+<div class="card">
+<table>
+<tr><th>ID</th><th>批次</th><th>表ID</th><th>类型</th><th>键</th><th>行内容(JSON)</th></tr>
+{{range .Changes}}
+<tr>
+ <td>{{.ID}}</td><td><a href="/batches/{{.BatchID}}">#{{.BatchID}}</a></td><td>{{.TableID}}</td>
+ <td>{{if eq .Op "D"}}<span class="tag bad">{{opname .Op}}</span>{{else if eq .Op "S"}}<span class="tag warn">{{opname .Op}}</span>{{else if eq .Op "I"}}<span class="tag ok">{{opname .Op}}</span>{{else}}<span class="tag run">{{opname .Op}}</span>{{end}}</td>
+ <td class="mono">{{.Key}}</td>
+ <td class="mono" style="max-width:600px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{.RowJSON}}</td>
+</tr>
+{{end}}
+</table>
+<p>
+{{if gt .Page 1}}<a class="btn gray" href="/changes?batch_id={{.BatchID}}&table_id={{.TableID}}&op={{.Op}}&page={{sub .Page 1}}">上一页</a>{{end}}
+ 第 {{.Page}} / {{.Pages}} 页
+{{if lt .Page .Pages}}<a class="btn gray" href="/changes?batch_id={{.BatchID}}&table_id={{.TableID}}&op={{.Op}}&page={{add .Page 1}}">下一页</a>{{end}}
+</p>
+</div>
+{{template "footer" .}}

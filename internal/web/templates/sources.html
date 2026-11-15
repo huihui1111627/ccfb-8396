@@ -1,0 +1,27 @@
+{{template "header" .}}
+<h1>源库登记</h1>
+{{if .Err}}<div class="err">{{.Err}}</div>{{end}}
+<div class="card">
+<h2>登记新源库</h2>
+<form method="post" action="/sources">
+ 门店名称 <input name="name" placeholder="门店-001" required>
+ SQLite 路径 <input name="path" size="50" placeholder="/data/pms/store_001.db" required>
+ <button class="btn" type="submit">登记并发现表</button>
+</form>
+</div>
+<div class="card">
+<table>
+<tr><th>ID</th><th>名称</th><th>路径</th><th>登记时间</th><th>操作</th></tr>
+{{range .Sources}}
+<tr>
+ <td>{{.ID}}</td><td>{{.Name}}</td><td class="mono">{{.Path}}</td><td>{{.CreatedAt}}</td>
+ <td>
+  <form class="inline" method="post" action="/sources/{{.ID}}/discover"><button class="btn gray" type="submit">重新发现表</button></form>
+  <a class="btn gray" href="/tables?source_id={{.ID}}">表配置</a>
+  <form class="inline" method="post" action="/sources/{{.ID}}/delete" onsubmit="return confirm('确认删除?')"><button class="btn red" type="submit">删除</button></form>
+ </td>
+</tr>
+{{end}}
+</table>
+</div>
+{{template "footer" .}}

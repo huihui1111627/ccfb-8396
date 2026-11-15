@@ -1,0 +1,29 @@
+{{template "header" .}}
+<h1>表同步配置 — {{.Source.Name}}</h1>
+<div class="card">
+<table>
+<tr><th>表名</th><th>启用</th><th>键模式</th><th>键列(逗号分隔)</th><th>软删除列</th><th>金额列(逗号分隔)</th><th>分桶数</th><th>操作</th></tr>
+{{range .Tables}}
+<tr>
+<form method="post" action="/tables/{{.ID}}">
+ <td>{{.Name}}</td>
+ <td><input type="checkbox" name="enabled" {{if .Enabled}}checked{{end}}></td>
+ <td><select name="key_mode">
+   <option value="pk" {{if eq .KeyMode "pk"}}selected{{end}}>主键</option>
+   <option value="business" {{if eq .KeyMode "business"}}selected{{end}}>业务键</option>
+   <option value="row" {{if eq .KeyMode "row"}}selected{{end}}>整行指纹</option>
+ </select></td>
+ <td><input name="key_cols" value="{{range $i,$c := .KeyCols}}{{if $i}},{{end}}{{$c}}{{end}}" size="14"></td>
+ <td><input name="soft_delete_col" value="{{.SoftDeleteCol}}" size="10"></td>
+ <td><input name="amount_cols" value="{{range $i,$c := .AmountCols}}{{if $i}},{{end}}{{$c}}{{end}}" size="12"></td>
+ <td><input name="buckets" value="{{.Buckets}}" size="4"></td>
+ <td><button class="btn" type="submit">保存</button>
+ </form>
+ <form class="inline" method="post" action="/tables/{{.ID}}/reset" onsubmit="return confirm('重置后下次全量重同步,确认?')"><button class="btn red" type="submit">重置状态</button></form>
+ </td>
+</tr>
+{{end}}
+</table>
+<p style="color:#6b7280;font-size:12px">键模式:主键=自动取源表主键;业务键=无主键表按配置列比对;整行指纹=整行哈希,变更体现为删+增。软删除列非空时,该列被置位的更新记为软删除。金额列用于对账汇总。</p>
+</div>
+{{template "footer" .}}

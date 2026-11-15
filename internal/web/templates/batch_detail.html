@@ -1,0 +1,19 @@
+{{template "header" .}}
+<h1>批次 #{{.Batch.ID}} 明细</h1>
+<div class="card">
+<p>状态:{{statuscn .Batch.Status}} &nbsp; 开始:{{.Batch.StartedAt}} &nbsp; 结束:{{.Batch.FinishedAt}}</p>
+{{if .Batch.Error}}<div class="err">{{.Batch.Error}}</div>{{end}}
+<table>
+<tr><th>表</th><th>状态</th><th>新增</th><th>更新</th><th>删除</th><th>变更明细</th><th>错误</th></tr>
+{{range .Rows}}
+<tr>
+ <td>{{.TableName}}</td>
+ <td>{{if eq .Status "done"}}<span class="tag ok">{{statuscn .Status}}</span>{{else if eq .Status "failed"}}<span class="tag bad">{{statuscn .Status}}</span>{{else}}<span class="tag run">{{statuscn .Status}}</span>{{end}}</td>
+ <td>{{.Inserts}}</td><td>{{.Updates}}</td><td>{{.Deletes}}</td>
+ <td><a href="/changes?batch_id={{$.Batch.ID}}&table_id={{.TableID}}">查看</a></td>
+ <td class="mono">{{.Error}}</td>
+</tr>
+{{end}}
+</table>
+</div>
+{{template "footer" .}}
