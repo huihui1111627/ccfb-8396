@@ -1,0 +1,73 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #f4f6fa; color: #1f2937; font-size: 14px;
+}
+header {
+  background: linear-gradient(120deg, #1e3a8a, #2563eb);
+  color: #fff; padding: 16px 28px; display: flex; align-items: center; justify-content: space-between;
+}
+header h1 { font-size: 20px; font-weight: 600; }
+header .sub { font-size: 13px; font-weight: 400; opacity: .8; margin-left: 10px; }
+header input { padding: 7px 10px; border-radius: 6px; border: none; width: 220px; }
+header button, .panel-head button, .lc-form button, .pager button {
+  padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer;
+  background: #2563eb; color: #fff; font-size: 13px;
+}
+header button:hover, .panel-head button:hover, .lc-form button:hover { background: #1d4ed8; }
+.user-box { display: flex; align-items: center; gap: 10px; }
+nav {
+  background: #fff; padding: 0 20px; display: flex; gap: 4px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.tab {
+  background: none; border: none; padding: 14px 20px; cursor: pointer;
+  font-size: 14px; color: #6b7280; border-bottom: 3px solid transparent;
+}
+.tab.active { color: #2563eb; border-bottom-color: #2563eb; font-weight: 600; }
+main { padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
+.tab-panel { display: none; background: #fff; border-radius: 10px; padding: 20px 24px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.tab-panel.active { display: block; }
+.panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+.panel-head h2 { font-size: 16px; }
+.panel-head .filters { display: flex; gap: 8px; align-items: center; }
+.filters select, .filters input, .lc-form input {
+  padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px;
+}
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #eef0f4; font-size: 13px; }
+th { color: #6b7280; font-weight: 600; background: #f9fafb; }
+tr:hover td { background: #f8faff; }
+button.small { padding: 4px 10px; font-size: 12px; margin-right: 4px; }
+button.danger { background: #dc2626; }
+button.danger:hover { background: #b91c1c; }
+button.warn { background: #d97706; }
+button.warn:hover { background: #b45309; }
+button.ok { background: #059669; }
+button.ok:hover { background: #047857; }
+.badge { padding: 3px 9px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.badge.online, .badge.done { background: #d1fae5; color: #047857; }
+.badge.offline, .badge.paused, .badge.queued { background: #fef3c7; color: #b45309; }
+.badge.faulted, .badge.failed { background: #fee2e2; color: #b91c1c; }
+.badge.running { background: #dbeafe; color: #1d4ed8; }
+.cap-bar { width: 140px; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; display: inline-block; vertical-align: middle; }
+.cap-fill { height: 100%; background: #2563eb; }
+.cap-fill.high { background: #dc2626; }
+.cap-text { font-size: 12px; color: #6b7280; margin-left: 8px; }
+.progress-bar { width: 160px; height: 10px; background: #e5e7eb; border-radius: 5px; overflow: hidden; display: inline-block; vertical-align: middle; }
+.progress-fill { height: 100%; background: #2563eb; transition: width .3s; }
+.progress-text { font-size: 12px; color: #6b7280; margin-left: 8px; }
+.mono { font-family: "SF Mono", Menlo, monospace; font-size: 12px; }
+.muted { color: #9ca3af; }
+.auto { margin-left: 12px; font-size: 13px; color: #4b5563; }
+.lc-form { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 24px; align-items: center; }
+.lc-form input { min-width: 160px; }
+h3 { font-size: 14px; margin: 18px 0 10px; color: #374151; }
+.pager { margin-top: 14px; display: flex; gap: 12px; align-items: center; }
+#toast {
+  position: fixed; top: 20px; right: 20px; min-width: 220px; padding: 12px 18px;
+  border-radius: 8px; color: #fff; display: none; z-index: 99; box-shadow: 0 4px 14px rgba(0,0,0,.18);
+}
+#toast.ok { background: #059669; display: block; }
+#toast.err { background: #dc2626; display: block; }
+code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; }

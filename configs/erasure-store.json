@@ -1,0 +1,23 @@
+{
+  "data_shards": 4,
+  "parity_shards": 2,
+  "stripe_size": 1048576,
+  "s3_addr": ":9000",
+  "console_addr": ":9001",
+  "console_token": "admin123",
+  "access_key": "testaccesskey",
+  "secret_key": "testsecretkey",
+  "region": "us-east-1",
+  "strict_enclosure": false,
+  "repair_bytes_per_sec": 33554432,
+  "meta_db_path": "data/meta/erasure-store.db",
+  "disks": [
+    {"id": "disk1", "path": "data/disk1", "enclosure": "enc-a"},
+    {"id": "disk2", "path": "data/disk2", "enclosure": "enc-a"},
+    {"id": "disk3", "path": "data/disk3", "enclosure": "enc-a"},
+    {"id": "disk4", "path": "data/disk4", "enclosure": "enc-b"},
+    {"id": "disk5", "path": "data/disk5", "enclosure": "enc-b"},
+    {"id": "disk6", "path": "data/disk6", "enclosure": "enc-b"},
+    {"id": "disk7", "path": "data/disk7", "enclosure": "enc-c"}
+  ]
+}

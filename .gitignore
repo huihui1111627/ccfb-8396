@@ -16,3 +16,9 @@ node_modules/
 __pycache__/
 .venv/
 venv/
+
+# ErasureStore 构建与测试产物
+/bin/
+/data/
+*.db
+*.db-*

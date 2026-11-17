@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>纠删码对象存储 · 管理控制台</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <h1>纠删码对象存储 <span class="sub">ErasureStore 管理控制台</span></h1>
+  <div class="login-box" id="loginBox">
+    <input type="password" id="tokenInput" placeholder="控制台 Token" />
+    <button onclick="login()">登录</button>
+  </div>
+  <div class="user-box" id="userBox" style="display:none">
+    <span id="tokenHint"></span>
+    <button onclick="logout()">退出</button>
+  </div>
+</header>
+
+<nav>
+  <button class="tab active" data-tab="buckets" onclick="switchTab('buckets')">存储桶</button>
+  <button class="tab" data-tab="objects" onclick="switchTab('objects')">对象浏览</button>
+  <button class="tab" data-tab="disks" onclick="switchTab('disks')">磁盘状态</button>
+  <button class="tab" data-tab="repair" onclick="switchTab('repair')">修复任务</button>
+  <button class="tab" data-tab="lifecycle" onclick="switchTab('lifecycle')">生命周期</button>
+</nav>
+
+<main>
+  <!-- 存储桶 -->
+  <section id="tab-buckets" class="tab-panel active">
+    <div class="panel-head">
+      <h2>存储桶列表</h2>
+      <button class="refresh" onclick="loadBuckets()">刷新</button>
+    </div>
+    <table>
+      <thead><tr><th>名称</th><th>创建时间</th><th>对象数</th><th>总容量</th><th>操作</th></tr></thead>
+      <tbody id="bucketRows"></tbody>
+    </table>
+  </section>
+
+  <!-- 对象浏览 -->
+  <section id="tab-objects" class="tab-panel">
+    <div class="panel-head">
+      <h2>对象浏览</h2>
+      <div class="filters">
+        <select id="objBucket" onchange="loadObjects(true)"></select>
+        <input id="objPrefix" placeholder="前缀过滤，如 images/2026/" />
+        <button onclick="loadObjects(true)">查询</button>
+        <button onclick="browseUp()">上级目录</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Key / 公共前缀</th><th>大小</th><th>修改时间</th><th>ETag</th><th>操作</th></tr></thead>
+      <tbody id="objectRows"></tbody>
+    </table>
+    <div class="pager">
+      <button id="nextPageBtn" onclick="nextPage()" style="display:none">下一页</button>
+      <span id="pageInfo"></span>
+    </div>
+  </section>
+
+  <!-- 磁盘状态 -->
+  <section id="tab-disks" class="tab-panel">
+    <div class="panel-head">
+      <h2>磁盘状态</h2>
+      <div>
+        <button onclick="probeDisks()">重新探测</button>
+        <button class="refresh" onclick="loadDisks()">刷新</button>
+        <label class="auto"><input type="checkbox" id="autoRefresh" checked onchange="toggleAuto()"> 5 秒自动刷新</label>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>磁盘 ID</th><th>盘柜</th><th>路径</th><th>状态</th><th>容量使用率</th><th>已用/总量</th><th>分片数</th><th>读错误</th><th>写错误</th><th>操作</th></tr></thead>
+      <tbody id="diskRows"></tbody>
+    </table>
+  </section>
+
+  <!-- 修复任务 -->
+  <section id="tab-repair" class="tab-panel">
+    <div class="panel-head">
+      <h2>修复任务</h2>
+      <div>
+        <label>限速 <input type="number" id="rateInput" style="width:120px" /> 字节/秒（0=不限）</label>
+        <button onclick="setRate()">应用限速</button>
+        <button onclick="triggerRepair()">立即扫描</button>
+        <button class="refresh" onclick="loadRepairTasks()">刷新</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>任务 ID</th><th>对象</th><th>缺失分片</th><th>损坏分片</th><th>状态</th><th>进度</th><th>错误</th><th>操作</th></tr></thead>
+      <tbody id="repairRows"></tbody>
+    </table>
+  </section>
+
+  <!-- 生命周期 -->
+  <section id="tab-lifecycle" class="tab-panel">
+    <div class="panel-head">
+      <h2>生命周期规则</h2>
+      <div>
+        <button onclick="runLifecycle()">立即执行一轮</button>
+        <button class="refresh" onclick="loadLifecycle()">刷新</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>存储桶</th><th>前缀</th><th>启用</th><th>对象过期天数</th><th>MPU 中止天数</th><th>更新时间</th><th>操作</th></tr></thead>
+      <tbody id="lcRows"></tbody>
+    </table>
+    <h3>新增 / 修改规则</h3>
+    <div class="lc-form">
+      <input id="lcBucket" placeholder="存储桶" />
+      <input id="lcPrefix" placeholder="前缀（可空）" />
+      <input id="lcExpire" type="number" placeholder="对象过期天数（0=不启用）" />
+      <input id="lcAbort" type="number" placeholder="未完成 MPU 天数（0=不启用）" />
+      <label><input type="checkbox" id="lcEnabled" checked /> 启用</label>
+      <button onclick="saveRule()">保存</button>
+    </div>
+    <h3>执行历史</h3>
+    <table>
+      <thead><tr><th>时间</th><th>存储桶</th><th>Key</th><th>动作</th><th>原因</th></tr></thead>
+      <tbody id="lcEventRows"></tbody>
+    </table>
+  </section>
+</main>
+
+<div id="toast"></div>
+<script src="/app.js"></script>
+</body>
+</html>
