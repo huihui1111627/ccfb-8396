@@ -16,3 +16,10 @@ node_modules/
 __pycache__/
 .venv/
 venv/
+
+# imstore runtime artifacts
+/bin/
+/data/
+/fakes/
+*.db
+*.db-*

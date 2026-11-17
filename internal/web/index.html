@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>imstore 影像对象存储控制台</title>
+<style>
+:root {
+  --bg: #0f172a; --panel: #1e293b; --panel2: #273449; --line: #334155;
+  --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8; --ok: #34d399;
+  --warn: #fbbf24; --bad: #f87171; --running: #60a5fa;
+}
+* { box-sizing: border-box; }
+body { margin:0; font: 14px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg); color:var(--text); }
+header { display:flex; align-items:center; gap:16px; padding:12px 20px; background:var(--panel);
+  border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; }
+header h1 { font-size:17px; margin:0; }
+header .sp { flex:1; }
+nav { display:flex; gap:4px; padding:8px 20px; background:var(--panel); border-bottom:1px solid var(--line); }
+nav button { background:transparent; color:var(--muted); border:0; padding:8px 14px; cursor:pointer;
+  border-radius:6px; font-size:14px; }
+nav button.active { background:var(--panel2); color:var(--text); }
+main { padding:20px; max-width:1200px; margin:0 auto; }
+.card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:16px; }
+.card h2 { margin:0 0 12px; font-size:15px; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th,td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }
+th { color:var(--muted); font-weight:600; }
+td.wrap,th.wrap { white-space:normal; word-break:break-all; }
+.pill { padding:2px 9px; border-radius:999px; font-size:12px; font-weight:600; }
+.pill.online { background:rgba(52,211,153,.15); color:var(--ok); }
+.pill.offline { background:rgba(248,113,113,.15); color:var(--bad); }
+.pill.readonly { background:rgba(251,191,36,.15); color:var(--warn); }
+.pill.running { background:rgba(96,165,250,.15); color:var(--running); }
+.pill.succeeded { background:rgba(52,211,153,.15); color:var(--ok); }
+.pill.failed { background:rgba(248,113,113,.15); color:var(--bad); }
+.pill.queued { background:rgba(148,163,184,.15); color:var(--muted); }
+.bar { height:8px; background:var(--panel2); border-radius:99px; overflow:hidden; min-width:90px; }
+.bar i { display:block; height:100%; background:var(--accent); }
+button.btn { background:var(--accent); color:#082f49; border:0; border-radius:6px; padding:6px 12px;
+  cursor:pointer; font-weight:600; }
+button.btn.ghost { background:var(--panel2); color:var(--text); }
+button.btn.danger { background:var(--bad); color:#450a0a; }
+button.btn:disabled { opacity:.5; cursor:not-allowed; }
+input,select { background:var(--panel2); border:1px solid var(--line); color:var(--text);
+  border-radius:6px; padding:7px 10px; font-size:13px; }
+.row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; }
+.stat { background:var(--panel2); border-radius:8px; padding:14px; }
+.stat b { font-size:22px; display:block; }
+.stat span { color:var(--muted); font-size:12px; }
+.login { max-width:360px; margin:12vh auto; }
+.muted { color:var(--muted); }
+a { color:var(--accent); }
+.code { font-family:ui-monospace,monospace; font-size:12px; }
+.toast { position:fixed; bottom:20px; right:20px; background:var(--panel2); border:1px solid var(--line);
+  padding:10px 16px; border-radius:8px; opacity:0; transition:opacity .2s; max-width:380px; }
+.toast.show { opacity:1; }
+.path a { cursor:pointer; text-decoration:none; }
+dialog { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:10px;
+  max-width:560px; width:90%; }
+dialog::backdrop { background:rgba(0,0,0,.5); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+<script>
+const $ = (s, el=document) => el.querySelector(s);
+const api = (path, opts={}) => fetch('/api/v1/'+path, {
+  ...opts, headers: { 'Authorization':'Bearer '+localStorage.token,
+    ...(opts.body ? {'Content-Type':'application/json'} : {}), ...(opts.headers||{}) }
+}).then(async r => { if(!r.ok) throw new Error((await r.json().catch(()=>({error:r.status}))).error);
+  return r.status===204 ? null : r.json(); });
+const fmtBytes = n => { if(n==null) return '-'; const u=['B','KiB','MiB','GiB','TiB']; let i=0;
+  while(n>=1024 && i<u.length-1){ n/=1024; i++; } return n.toFixed(i?1:0)+' '+u[i]; };
+const toast = msg => { const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2600); };
+const esc = s => String(s??'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let tab = 'volumes';
+
+function render(){
+  if(!localStorage.token){ renderLogin(); return; }
+  $('#app').innerHTML = `
+  <header><h1>imstore 影像对象存储</h1><span class="sp"></span>
+    <span class="muted">纠删码 S3 兼容存储</span>
+    <button class="btn ghost" onclick="logout()">退出</button></header>
+  <nav>${[['volumes','磁盘状态'],['buckets','存储桶'],['objects','对象浏览'],
+    ['repair','修复任务'],['lifecycle','生命周期']].map(([k,n])=>
+    `<button class="${tab===k?'active':''}" onclick="tab='${k}';render()">${n}</button>`).join('')}</nav>
+  <main id="view"></main>`;
+  ({volumes:viewVolumes,buckets:viewBuckets,objects:viewObjects,
+    repair:viewRepair,lifecycle:viewLifecycle}[tab])();
+}
+function renderLogin(){
+  $('#app').innerHTML = `<div class="card login"><h2>控制台登录</h2>
+    <p class="muted">输入配置中的 console_token</p>
+    <input id="tok" type="password" style="width:100%;margin-bottom:10px" placeholder="Console Token"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn" style="width:100%" onclick="doLogin()">登录</button></div>`;
+}
+async function doLogin(){
+  const token = $('#tok').value.trim();
+  const r = await fetch('/api/v1/login',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({token})});
+  if(r.ok){ localStorage.token=token; render(); } else toast('令牌错误');
+}
+function logout(){ delete localStorage.token; render(); }
+
+async function viewVolumes(){
+  const [ov, vols] = await Promise.all([api('overview'), api('volumes')]);
+  $('#view').innerHTML = `
+  <div class="grid">
+    <div class="stat"><b>${ov.object_count}</b><span>对象总数</span></div>
+    <div class="stat"><b>${ov.bucket_count}</b><span>存储桶</span></div>
+    <div class="stat"><b>${fmtBytes(ov.capacity)}</b><span>裸容量</span></div>
+    <div class="stat"><b>${fmtBytes(ov.used)}</b><span>已用(文件系统)</span></div>
+    <div class="stat"><b>${ov.volumes.online||0}/${(ov.volumes.offline||0)+(ov.volumes.online||0)}</b><span>在线磁盘</span></div>
+  </div>
+  <div class="card"><h2>磁盘状态（模拟盘 = 本地目录）</h2>
+  <div class="row" style="margin-bottom:10px">
+    <button class="btn ghost" onclick="setRate()">调整修复限速</button>
+    <span class="muted">拔掉/插回磁盘用于故障演练</span></div>
+  <table><thead><tr><th>磁盘ID</th><th>盘柜</th><th>路径</th><th>状态</th>
+    <th>容量使用</th><th>分片数</th><th>错误数</th><th>最近错误</th><th>操作</th></tr></thead>
+  <tbody>${vols.map(v=>`<tr>
+    <td class="code">${esc(v.id)}</td><td>${esc(v.enclosure)}</td>
+    <td class="wrap code">${esc(v.path)}</td>
+    <td><span class="pill ${v.status}">${v.status}</span></td>
+    <td><div class="bar"><i style="width:${v.capacity_bytes?Math.min(100,v.used_bytes/v.capacity_bytes*100):0}%"></i></div>
+      <span class="muted">${fmtBytes(v.used_bytes)} / ${fmtBytes(v.capacity_bytes)}</span></td>
+    <td>${v.shard_count}</td><td>${v.error_count}</td>
+    <td class="wrap muted">${esc(v.last_error||'-')}</td>
+    <td class="row">${v.status==='online'
+      ? `<button class="btn danger" onclick="volAction('${v.id}','offline')">拔盘</button>`
+      : `<button class="btn" onclick="volAction('${v.id}','online')">插回并重建</button>`}</td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+async function volAction(id, act){
+  await api(`volumes/${id}/${act}`,{method:'POST'});
+  toast(act==='offline'?'磁盘已下线':'磁盘已上线，重建任务已启动');
+  setTimeout(render, 500);
+}
+async function setRate(){
+  const cur = await api('overview'); const v = prompt('修复限速字节/秒（0=不限速）', '8388608');
+  if(v==null) return;
+  await api('repair/rate',{method:'POST',body:JSON.stringify({bytes_per_second:+v})});
+  toast('限速已更新');
+}
+
+async function viewBuckets(){
+  const buckets = await api('buckets');
+  $('#view').innerHTML = `<div class="card"><h2>存储桶</h2>
+  <div class="row" style="margin-bottom:10px">
+    <input id="nb" placeholder="新存储桶名称">
+    <button class="btn" onclick="createBucket()">创建存储桶</button></div>
+  <table><thead><tr><th>名称</th><th>创建时间</th></tr></thead><tbody>
+  ${buckets.map(b=>`<tr><td><a onclick="tab='objects';state.bucket='${esc(b.name)}';render()">${esc(b.name)}</a></td>
+    <td>${new Date(b.created_at).toLocaleString()}</td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+async function createBucket(){
+  const name=$('#nb').value.trim(); if(!name)return;
+  // bucket creation goes through S3 API with the console token not valid there;
+  // use the admin convenience endpoint below.
+  await api('buckets/create/'+encodeURIComponent(name),{method:'POST'});
+  toast('已创建 '+name); render();
+}
+
+const state = { bucket:'', prefix:'', token:'' };
+async function viewObjects(){
+  if(!state.bucket){ const bs=await api('buckets');
+    if(bs.length){ state.bucket=bs[0].name; } else { $('#view').innerHTML='<div class="card">暂无存储桶</div>'; return; } }
+  const q = new URLSearchParams({prefix:state.prefix, token:state.token});
+  const page = await api(`buckets/${encodeURIComponent(state.bucket)}/objects?${q}`);
+  const crumbs = ['<a onclick="state.prefix='';state.token='';render()">根目录</a>'];
+  const parts = state.prefix.split('/').filter(Boolean); let acc='';
+  parts.forEach(p=>{ acc+=p+'/'; crumbs.push(`<a onclick="state.prefix='${acc}';state.token='';render()">${esc(p)}</a>`); });
+  $('#view').innerHTML = `<div class="card"><h2>对象浏览 · ${esc(state.bucket)}</h2>
+  <div class="row" style="margin-bottom:10px">
+    <select id="bsel">${(await api('buckets')).map(b=>
+      `<option ${b.name===state.bucket?'selected':''}>${esc(b.name)}</option>`).join('')}</select>
+    <button class="btn ghost" onclick="state.bucket=$('#bsel').value;state.prefix='';state.token='';render()">切换</button>
+  </div>
+  <div class="path muted" style="margin-bottom:8px">${crumbs.join(' / ')}</div>
+  <table><thead><tr><th>键 / 前缀</th><th>大小</th><th>ETag</th><th>SHA-256</th><th>修改时间</th><th>操作</th></tr></thead><tbody>
+  ${page.CommonPrefixes.map(cp=>`<tr><td colspan="6">📁 <a onclick="state.prefix='${esc(cp.Prefix)}';state.token='';render()">${esc(cp.Prefix)}</a></td></tr>`).join('')}
+  ${page.Objects.map(o=>`<tr>
+    <td class="wrap">${esc(o.Key)}</td><td>${fmtBytes(o.Size)}</td>
+    <td class="code">${esc(o.ETag)}</td><td class="code wrap">${esc(o.SHA256.slice(0,24))}…</td>
+    <td>${new Date(o.CreatedAt).toLocaleString()}</td>
+    <td class="row"><button class="btn ghost" onclick="presign('${esc(o.Key)}')">预签名链接</button></td></tr>`).join('')}
+  </tbody></table>
+  <div class="row" style="margin-top:10px">
+    <span class="muted">${page.Objects.length + page.CommonPrefixes.length} 项${page.Truncated?'（还有更多）':''}</span>
+    ${page.Truncated?`<button class="btn" onclick="state.token='${esc(page.NextStartKey)}';render()">下一页</button>`:''}
+  </div></div>`;
+}
+async function presign(key){
+  const j = await api(`presign?bucket=${encodeURIComponent(state.bucket)}&key=${encodeURIComponent(key)}&expires=5m`);
+  navigator.clipboard?.writeText(j.url);
+  toast('预签名链接已复制，过期时间 '+j.expires_at);
+}
+
+async function viewRepair(){
+  const tasks = await api('repair/tasks');
+  $('#view').innerHTML = `<div class="card"><h2>修复任务</h2>
+  <div class="row" style="margin-bottom:10px">
+    <button class="btn" onclick="api('repair/scan',{method:'POST'}).then(()=>toast('已触发全量扫描'))">立即扫描降级对象</button>
+    <button class="btn ghost" onclick="api('repair/scrub',{method:'POST'}).then(()=>toast('已启动比特巡检'))">启动巡检(Scrub)</button>
+    <button class="btn ghost" onclick="render()">刷新</button>
+  </div>
+  <table><thead><tr><th>#</th><th>类型</th><th>目标</th><th>状态</th><th>进度(分片)</th>
+    <th>已修复字节</th><th>限速</th><th>开始时间</th><th>错误</th></tr></thead><tbody>
+  ${tasks.map(t=>`<tr><td>${t.id}</td><td>${esc(t.kind)}</td><td class="code wrap">${esc(t.Target)}</td>
+    <td><span class="pill ${t.status}">${t.status}</span></td>
+    <td>${t.ShardsDone}/${t.ShardsTotal||'-'}</td><td>${fmtBytes(t.BytesFixed)}</td>
+    <td>${fmtBytes(t.ThrottledBps)}/s</td><td>${new Date(t.StartedAt).toLocaleTimeString()}</td>
+    <td class="wrap muted">${esc(t.Error||'-')}</td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+
+async function viewLifecycle(){
+  const [rules, stats] = await Promise.all([api('lifecycle/rules'), api('lifecycle/stats')]);
+  $('#view').innerHTML = `
+  <div class="grid"><div class="stat"><b>${stats.expired_objects}</b><span>累计过期删除</span></div>
+  <div class="stat"><b>${stats.aborted_uploads}</b><span>累计中止的多段上传</span></div>
+  <div class="stat"><b>${stats.last_run?new Date(stats.last_run).toLocaleTimeString():'-'}</b><span>最近执行</span></div></div>
+  <div class="card"><h2>生命周期规则</h2>
+  <div class="row" style="margin-bottom:10px">
+    <input id="lcBucket" placeholder="存储桶" style="width:140px">
+    <input id="lcPrefix" placeholder="前缀(可选)" style="width:160px">
+    <input id="lcDays" type="number" placeholder="过期天数" style="width:110px" value="30">
+    <button class="btn" onclick="addRule()">添加规则</button>
+    <button class="btn ghost" onclick="api('lifecycle/run',{method:'POST'}).then(()=>toast('已触发执行'))">立即执行</button>
+  </div>
+  <table><thead><tr><th>ID</th><th>存储桶</th><th>前缀</th><th>过期天数</th><th>状态</th><th></th></tr></thead><tbody>
+  ${rules.map(r=>`<tr><td class="code">${esc(r.ID)}</td><td>${esc(r.Bucket)}</td>
+    <td>${esc(r.Prefix||'(全部)')}</td><td>${r.ExpireDays}</td><td>${esc(r.Status)}</td>
+    <td><button class="btn danger" onclick="delRule('${esc(r.ID)}')">删除</button></td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+async function addRule(){
+  const bucket=$('#lcBucket').value.trim(); const days=+$('#lcDays').value;
+  if(!bucket||!days){ toast('存储桶和天数必填'); return; }
+  await api('lifecycle/rules',{method:'POST',body:JSON.stringify(
+    {Bucket:bucket,Prefix:$('#lcPrefix').value.trim(),ExpireDays:days,Status:'Enabled'})});
+  render();
+}
+async function delRule(id){ await api('lifecycle/rules/'+id,{method:'DELETE'}); render(); }
+
+render();
+setInterval(()=>{ if(localStorage.token && ['volumes','repair'].includes(tab)) render(); }, 5000);
+</script>
+</body>
+</html>

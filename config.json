@@ -1,0 +1,27 @@
+{
+  "listen": ":8333",
+  "external_url": "http://127.0.0.1:8333",
+  "region": "us-east-1",
+  "access_key": "imstoreadmin",
+  "secret_key": "imstoresecret",
+  "console_token": "console-token-2026",
+  "data_shards": 4,
+  "parity_shards": 2,
+  "stripe_size": 1048576,
+  "meta_db": "data/meta/meta.db",
+  "volumes": [
+    {"id": "disk0", "path": "data/disk0", "enclosure": "rack0"},
+    {"id": "disk1", "path": "data/disk1", "enclosure": "rack1"},
+    {"id": "disk2", "path": "data/disk2", "enclosure": "rack2"},
+    {"id": "disk3", "path": "data/disk3", "enclosure": "rack3"},
+    {"id": "disk4", "path": "data/disk4", "enclosure": "rack4"},
+    {"id": "disk5", "path": "data/disk5", "enclosure": "rack5"}
+  ],
+  "repair": {
+    "max_bytes_per_second": 8388608,
+    "yield_when_busy": true,
+    "interval_seconds": 5
+  },
+  "scrub_interval_seconds": 3600,
+  "multipart_max_part_hours": 24
+}
